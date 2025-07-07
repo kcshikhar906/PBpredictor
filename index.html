@@ -17,36 +17,48 @@
             color: #e5e7eb;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1280px;
             margin: 0 auto;
             padding: 2rem;
         }
-        .chart-container {
+        .card {
             background: white;
             border-radius: 0.5rem;
             padding: 1.5rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
             transition: background-color 0.3s;
         }
-        .dark .chart-container {
-            background: #374151;
-        }
-        .table-container {
-            background: white;
-            border-radius: 0.5rem;
-            padding: 1.5rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s;
-        }
-        .dark .table-container {
+        .dark .card {
             background: #374151;
         }
         .fade-in {
             animation: fadeIn 0.5s ease-in;
         }
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+        }
+        .dark .modal-content {
+            background: #374151;
         }
     </style>
 </head>
@@ -57,150 +69,291 @@
             <button onclick="toggleDarkMode()" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">Toggle Dark Mode</button>
         </div>
 
+        <!-- Number Generator Section (Prioritized) -->
+        <div class="card mb-8 fade-in">
+            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Powerball Number Generator</h2>
+            <div class="flex flex-col sm:flex-row gap-4 mb-4">
+                <div>
+                    <label for="numGames" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of Games (1–10):</label>
+                    <input type="number" id="numGames" min="1" max="10" value="1" class="mt-1 p-2 border rounded-md w-24 dark:bg-gray-700 dark:text-gray-200">
+                </div>
+                <div>
+                    <label for="weighting" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number Selection:</label>
+                    <select id="weighting" class="mt-1 p-2 border rounded-md dark:bg-gray-700 dark:text-gray-200">
+                        <option value="random">Random</option>
+                        <option value="hot">Favor Hot Numbers</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="generateNumbers()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Generate Numbers</button>
+                <button onclick="saveNumbers()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Save Numbers</button>
+                <button onclick="exportNumbers()" class="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700">Export as CSV</button>
+            </div>
+            <div id="generatedNumbers" class="mt-4 text-gray-600 dark:text-gray-400"></div>
+        </div>
+
         <!-- Statistics Section -->
         <div class="mb-8">
-            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Number Frequency Statistics</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="chart-container fade-in">
+            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Powerball Statistics</h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="card fade-in">
                     <h3 class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">Main Numbers Frequency</h3>
                     <canvas id="mainFrequencyChart"></canvas>
                 </div>
-                <div class="chart-container fade-in">
+                <div class="card fade-in">
                     <h3 class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">Powerball Frequency</h3>
                     <canvas id="powerballFrequencyChart"></canvas>
                 </div>
-            </div>
-            <div class="table-container mt-6 fade-in">
-                <h3 class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-4">Hot and Cold Numbers</h3>
-                <label for="numDisplay" class="text-sm font-medium text-gray-700 dark:text-gray-300">Show Top/Bottom:</label>
-                <select id="numDisplay" onchange="updateHotCold()" class="ml-2 p-2 border rounded-md dark:bg-gray-700 dark:text-gray-200">
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="15">15</option>
-                </select>
-                <table class="w-full mt-4 text-left">
-                    <thead>
-                        <tr class="text-gray-600 dark:text-gray-300">
-                            <th class="p-2">Type</th>
-                            <th class="p-2">Numbers</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr class="border-t dark:border-gray-600">
-                            <td class="p-2 text-gray-600 dark:text-gray-300">Hot Main Numbers</td>
-                            <td id="hotNumbers" class="p-2 text-gray-500 dark:text-gray-400">Loading...</td>
-                        </tr>
-                        <tr class="border-t dark:border-gray-600">
-                            <td class="p-2 text-gray-600 dark:text-gray-300">Cold Main Numbers</td>
-                            <td id="coldNumbers" class="p-2 text-gray-500 dark:text-gray-400">Loading...</td>
-                        </tr>
-                    </tbody>
-                </table>
+                <div class="card fade-in">
+                    <h3 class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">Recent Draw Trends</h3>
+                    <canvas id="trendChart"></canvas>
+                </div>
+                <div class="card fade-in">
+                    <h3 class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-4">Hot, Cold, and Overdue Numbers</h3>
+                    <label for="numDisplay" class="text-sm font-medium text-gray-700 dark:text-gray-300">Show Top/Bottom:</label>
+                    <select id="numDisplay" onchange="updateHotCold()" class="ml-2 p-2 border rounded-md dark:bg-gray-700 dark:text-gray-200">
+                        <option value="5">5</option>
+                        <option value="10">10</option>
+                        <option value="15">15</option>
+                    </select>
+                    <table class="w-full mt-4 text-left">
+                        <thead>
+                            <tr class="text-gray-600 dark:text-gray-300">
+                                <th class="p-2">Type</th>
+                                <th class="p-2">Numbers</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="border-t dark:border-gray-600">
+                                <td class="p-2 text-gray-600 dark:text-gray-300">Hot Main Numbers</td>
+                                <td id="hotNumbers" class="p-2 text-gray-500 dark:text-gray-400">Loading...</td>
+                            </tr>
+                            <tr class="border-t dark:border-gray-600">
+                                <td class="p-2 text-gray-600 dark:text-gray-300">Cold Main Numbers</td>
+                                <td id="coldNumbers" class="p-2 text-gray-500 dark:text-gray-400">Loading...</td>
+                            </tr>
+                            <tr class="border-t dark:border-gray-600">
+                                <td class="p-2 text-gray-600 dark:text-gray-300">Overdue Numbers</td>
+                                <td id="overdueNumbers" class="p-2 text-gray-500 dark:text-gray-400">Loading...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <!-- Number Generator Section -->
-        <div class="mb-8">
-            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Generate Powerball Numbers</h2>
-            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow fade-in">
-                <label for="numGames" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of Games:</label>
-                <input type="number" id="numGames" min="1" max="10" value="1" class="mt-1 p-2 border rounded-md w-24 dark:bg-gray-700 dark:text-gray-200">
-                <button onclick="generateNumbers()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Generate</button>
-                <div id="generatedNumbers" class="mt-4 text-gray-600 dark:text-gray-400"></div>
+        <!-- Modal for Generated Numbers -->
+        <div id="numbersModal" class="modal">
+            <div class="modal-content dark:text-gray-200">
+                <h3 class="text-lg font-medium mb-4">Generated Numbers</h3>
+                <div id="modalNumbers" class="text-gray-600 dark:text-gray-400"></div>
+                <button onclick="closeModal()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Close</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Sample data (simulating statistics from https://australia.national-lottery.com/powerball/statistics)
-        const numberFrequencies = {
-            main: Array(35).fill(0).map((_, i) => ({ number: i + 1, frequency: Math.floor(Math.random() * 200) + 50 })),
-            powerball: Array(20).fill(0).map((_, i) => ({ number: i + 1, frequency: Math.floor(Math.random() * 100) + 20 }))
+        // Sample data (simulating comprehensive statistics)
+        const numberData = {
+            mainFrequencies: Array(35).fill(0).map((_, i) => ({ number: i + 1, frequency: Math.floor(Math.random() * 300) + 100 })),
+            powerballFrequencies: Array(20).fill(0).map((_, i) => ({ number: i + 1, frequency: Math.floor(Math.random() * 150) + 50 })),
+            overdueNumbers: Array(10).fill(0).map((_, i) => ({ number: Math.floor(Math.random() * 35) + 1, drawsSince: Math.floor(Math.random() * 20) + 5 })),
+            drawTrends: Array(10).fill(0).map((_, i) => ({
+                draw: `Draw ${i + 1}`,
+                avgNumber: Math.floor(Math.random() * 35) + 1,
+                powerball: Math.floor(Math.random() * 20) + 1
+            }))
         };
 
-        // Initialize Main Numbers Chart
-        const mainCtx = document.getElementById('mainFrequencyChart').getContext('2d');
-        new Chart(mainCtx, {
-            type: 'bar',
-            data: {
-                labels: numberFrequencies.main.map(n => n.number),
-                datasets: [{
-                    label: 'Main Numbers Frequency',
-                    data: numberFrequencies.main.map(n => n.frequency),
-                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { tooltip: { callbacks: { label: ctx => `Number ${ctx.label}: ${ctx.raw} draws` } } },
-                scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Frequency' } },
-                    x: { title: { display: true, text: 'Number' } }
-                }
+        // Attempt to fetch live data (placeholder for server-side API)
+        async function fetchLiveData() {
+            try {
+                // Placeholder: Replace with actual API endpoint
+                // const response = await fetch('https://your-server-api/powerball-data');
+                // const data = await response.json();
+                // return data;
+                return numberData; // Fallback to sample data
+            } catch (error) {
+                console.error('Failed to fetch live data:', error);
+                return numberData; // Fallback to sample data
             }
-        });
+        }
 
-        // Initialize Powerball Chart
-        const powerballCtx = document.getElementById('powerballFrequencyChart').getContext('2d');
-        new Chart(powerballCtx, {
-            type: 'bar',
-            data: {
-                labels: numberFrequencies.powerball.map(n => n.number),
-                datasets: [{
-                    label: 'Powerball Frequency',
-                    data: numberFrequencies.powerball.map(n => n.frequency),
-                    backgroundColor: 'rgba(239, 68, 68, 0.5)',
-                    borderColor: 'rgba(239, 68, 68, 1)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { tooltip: { callbacks: { label: ctx => `Powerball ${ctx.label}: ${ctx.raw} draws` } } },
-                scales: {
-                    y: { beginAtZero: true, title: { display: true, text: 'Frequency' } },
-                    x: { title: { display: true, text: 'Powerball Number' } }
+        // Initialize Charts
+        async function initCharts() {
+            const data = await fetchLiveData();
+
+            // Main Numbers Frequency Chart
+            new Chart(document.getElementById('mainFrequencyChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: data.mainFrequencies.map(n => n.number),
+                    datasets: [{
+                        label: 'Main Numbers Frequency',
+                        data: data.mainFrequencies.map(n => n.frequency),
+                        backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                        borderColor: 'rgba(59, 130, 246, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { tooltip: { callbacks: { label: ctx => `Number ${ctx.label}: ${ctx.raw} draws` } } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Frequency' } }, x: { title: { display: true, text: 'Number' } } }
                 }
-            }
-        });
+            });
+
+            // Powerball Frequency Chart
+            new Chart(document.getElementById('powerballFrequencyChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: data.powerballFrequencies.map(n => n.number),
+                    datasets: [{
+                        label: 'Powerball Frequency',
+                        data: data.powerballFrequencies.map(n => n.frequency),
+                        backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                        borderColor: 'rgba(239, 68, 68, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { tooltip: { callbacks: { label: ctx => `Powerball ${ctx.label}: ${ctx.raw} draws` } } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Frequency' } }, x: { title: { display: true, text: 'Powerball Number' } } }
+                }
+            });
+
+            // Draw Trends Chart
+            new Chart(document.getElementById('trendChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: data.drawTrends.map(t => t.draw),
+                    datasets: [
+                        {
+                            label: 'Average Main Number',
+                            data: data.drawTrends.map(t => t.avgNumber),
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            fill: false
+                        },
+                        {
+                            label: 'Powerball',
+                            data: data.drawTrends.map(t => t.powerball),
+                            borderColor: 'rgba(239, 68, 68, 1)',
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.raw}` } } },
+                    scales: { y: { beginAtZero: true, title: { display: true, text: 'Number' } }, x: { title: { display: true, text: 'Draw' } } }
+                }
+            });
+
+            // Hot, Cold, and Overdue Numbers
+            updateHotCold(data);
+        }
 
         // Update Hot and Cold Numbers
-        function updateHotCold() {
+        function updateHotCold(data) {
             const numDisplay = parseInt(document.getElementById('numDisplay').value);
-            const sortedMain = [...numberFrequencies.main].sort((a, b) => b.frequency - a.frequency);
+            const sortedMain = [...data.mainFrequencies].sort((a, b) => b.frequency - a.frequency);
+            const sortedOverdue = [...data.overdueNumbers].sort((a, b) => b.drawsSince - a.drawsSince);
             document.getElementById('hotNumbers').textContent = sortedMain.slice(0, numDisplay).map(n => n.number).join(', ');
             document.getElementById('coldNumbers').textContent = sortedMain.slice(-numDisplay).map(n => n.number).join(', ');
+            document.getElementById('overdueNumbers').textContent = sortedOverdue.slice(0, numDisplay).map(n => `${n.number} (${n.drawsSince} draws)`).join(', ');
         }
-        updateHotCold();
 
-        // Generate Random Powerball Numbers
-        function generateNumbers() {
+        // Generate Powerball Numbers
+        async function generateNumbers() {
             const numGames = parseInt(document.getElementById('numGames').value);
+            const weighting = document.getElementById('weighting').value;
+            const data = await fetchLiveData();
+
             if (isNaN(numGames) || numGames < 1 || numGames > 10) {
-                document.getElementById('generatedNumbers').innerHTML = '<p class="text-red-500">Please enter a number between 1 and 10.</p>';
+                showModal('<p class="text-red-500">Please enter a number between 1 and 10.</p>');
                 return;
             }
 
+            const hotNumbers = [...data.mainFrequencies].sort((a, b) => b.frequency - a.frequency).slice(0, 10).map(n => n.number);
             let output = '';
+            const generatedSets = [];
+
             for (let i = 0; i < numGames; i++) {
                 const mainNumbers = [];
-                while (mainNumbers.length < 7) {
-                    const num = Math.floor(Math.random() * 35) + 1;
-                    if (!mainNumbers.includes(num)) mainNumbers.push(num);
+                if (weighting === 'hot') {
+                    // Weighted towards hot numbers (50% chance from hot numbers)
+                    while (mainNumbers.length < 7) {
+                        const useHot = Math.random() < 0.5;
+                        const num = useHot
+                            ? hotNumbers[Math.floor(Math.random() * hotNumbers.length)]
+                            : Math.floor(Math.random() * 35) + 1;
+                        if (!mainNumbers.includes(num)) mainNumbers.push(num);
+                    }
+                } else {
+                    while (mainNumbers.length < 7) {
+                        const num = Math.floor(Math.random() * 35) + 1;
+                        if (!mainNumbers.includes(num)) mainNumbers.push(num);
+                    }
                 }
                 mainNumbers.sort((a, b) => a - b);
                 const powerball = Math.floor(Math.random() * 20) + 1;
+                generatedSets.push({ mainNumbers, powerball });
                 output += `<p>Game ${i + 1}: ${mainNumbers.join(', ')} | Powerball: ${powerball}</p>`;
             }
+
+            showModal(output);
             document.getElementById('generatedNumbers').innerHTML = output;
+            window.generatedNumbers = generatedSets; // Store for saving/exporting
+        }
+
+        // Save Numbers to Local Storage
+        function saveNumbers() {
+            if (!window.generatedNumbers) {
+                showModal('<p class="text-red-500">No numbers generated yet.</p>');
+                return;
+            }
+            localStorage.setItem('powerballNumbers', JSON.stringify(window.generatedNumbers));
+            showModal('<p class="text-green-500">Numbers saved to local storage.</p>');
+        }
+
+        // Export Numbers as CSV
+        function exportNumbers() {
+            if (!window.generatedNumbers) {
+                showModal('<p class="text-red-500">No numbers generated yet.</p>');
+                return;
+            }
+            const csv = ['Game,Main Numbers,Powerball'];
+            window.generatedNumbers.forEach((set, i) => {
+                csv.push(`${i + 1},"${set.mainNumbers.join(',')}","${set.powerball}"`);
+            });
+            const blob = new Blob([csv.join('\n')], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'powerball_numbers.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // Modal Functions
+        function showModal(content) {
+            document.getElementById('modalNumbers').innerHTML = content;
+            document.getElementById('numbersModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('numbersModal').style.display = 'none';
         }
 
         // Dark Mode Toggle
         function toggleDarkMode() {
             document.body.classList.toggle('dark');
         }
+
+        // Initialize Dashboard
+        initCharts();
     </script>
 </body>
 </html>
