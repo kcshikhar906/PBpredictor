@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Powerball Predictor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f7f7f7;
+      padding: 20px;
+    }
+    h1, h2 {
+      color: #4a148c;
+    }
+    .result {
+      margin: 20px 0;
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .number-set {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-weight: bold;
+    }
+    .number, .powerball {
+      background: #6200ea;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 20px;
+    }
+    .powerball {
+      background: #f50057;
+    }
+    #downloadBtn {
+      background: #009688;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Powerball Predictor</h1>
+  <p>Live frequency data is used to generate high-probability numbers.</p>
+
+  <label for="gameCount">How many games do you want to generate?</label>
+  <input type="number" id="gameCount" min="1" max="20" value="5">
+  <button onclick="generateNumbers()">Generate</button>
+  <button id="downloadBtn" onclick="downloadCSV()">Download as CSV</button>
+
+  <div id="liveData" class="result"></div>
+  <h2>Predicted Entries</h2>
+  <div id="output"></div>
+
+  <script>
+    let lastResults = [];
+
+    async function getFrequencyData() {
+      const proxyUrl = 'https://api.allorigins.win/get?url=';
+      const targetUrl = encodeURIComponent('https://australia.national-lottery.com/powerball/statistics');
+      const response = await fetch(proxyUrl + targetUrl);
+      const data = await response.json();
+      const html = data.contents;
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      let mainFreq = [];
+      let powerballFreq = [];
+
+      doc.querySelectorAll("#main-ball-frequencies tr").forEach((row, i) => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length === 3) {
+          const number = parseInt(cells[0].innerText);
+          const freq = parseInt(cells[2].innerText);
+          if (!isNaN(number)) mainFreq.push({ number, freq });
+        }
+      });
+
+      doc.querySelectorAll("#powerball-frequencies tr").forEach((row, i) => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length === 3) {
+          const number = parseInt(cells[0].innerText);
+          const freq = parseInt(cells[2].innerText);
+          if (!isNaN(number)) powerballFreq.push({ number, freq });
+        }
+      });
+
+      mainFreq.sort((a, b) => b.freq - a.freq);
+      powerballFreq.sort((a, b) => b.freq - a.freq);
+
+      return { main: mainFreq, powerball: powerballFreq };
+    }
+
+    function weightedRandomChoice(frequencies, count) {
+      const weighted = [];
+      frequencies.forEach(num => {
+        for (let i = 0; i < num.freq; i++) weighted.push(num.number);
+      });
+      const result = new Set();
+      while (result.size < count) {
+        const index = Math.floor(Math.random() * weighted.length);
+        result.add(weighted[index]);
+      }
+      return [...result].sort((a, b) => a - b);
+    }
+
+    async function generateNumbers() {
+      const output = document.getElementById('output');
+      output.innerHTML = '';
+      const gameCount = parseInt(document.getElementById('gameCount').value);
+
+      const data = await getFrequencyData();
+      const mainNumbers = data.main.slice(0, 35);
+      const powerBalls = data.powerball;
+
+      lastResults = [];
+
+      for (let i = 0; i < gameCount; i++) {
+        const numbers = weightedRandomChoice(mainNumbers, 7);
+        const powerball = weightedRandomChoice(powerBalls, 1)[0];
+        lastResults.push({ numbers, powerball });
+
+        const entry = document.createElement('div');
+        entry.className = 'result';
+
+        const numberSet = document.createElement('div');
+        numberSet.className = 'number-set';
+        numbers.forEach(n => {
+          const span = document.createElement('span');
+          span.className = 'number';
+          span.innerText = n;
+          numberSet.appendChild(span);
+        });
+        const pb = document.createElement('span');
+        pb.className = 'powerball';
+        pb.innerText = 'PB: ' + powerball;
+        numberSet.appendChild(pb);
+
+        entry.appendChild(numberSet);
+        output.appendChild(entry);
+      }
+    }
+
+    function downloadCSV() {
+      if (!lastResults.length) {
+        alert("Please generate numbers first.");
+        return;
+      }
+      let csv = 'Game,Numbers,Powerball\n';
+      lastResults.forEach((res, i) => {
+        csv += `${i + 1},"${res.numbers.join(' ')}",${res.powerball}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = 'powerball_predictions.csv';
+      link.click();
+    }
+
+    async function showLiveData() {
+      const data = await getFrequencyData();
+      const div = document.getElementById('liveData');
+      const table = document.createElement('div');
+      table.innerHTML = `
+        <strong>Top Frequent Numbers:</strong><br>
+        ${data.main.slice(0, 10).map(n => `<span class='number'>${n.number}</span>`).join(' ')}
+        <br><strong>Top Powerballs:</strong><br>
+        ${data.powerball.slice(0, 5).map(n => `<span class='powerball'>${n.number}</span>`).join(' ')}
+      `;
+      div.appendChild(table);
+    }
+
+    showLiveData();
+  </script>
+</body>
+</html>
