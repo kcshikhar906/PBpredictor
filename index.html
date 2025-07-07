@@ -1,184 +1,206 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Powerball Predictor</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f7f7f7;
-      padding: 20px;
-    }
-    h1, h2 {
-      color: #4a148c;
-    }
-    .result {
-      margin: 20px 0;
-      padding: 15px;
-      background: #fff;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .number-set {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      font-weight: bold;
-    }
-    .number, .powerball {
-      background: #6200ea;
-      color: white;
-      padding: 10px 14px;
-      border-radius: 20px;
-    }
-    .powerball {
-      background: #f50057;
-    }
-    #downloadBtn {
-      background: #009688;
-      color: #fff;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 10px;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Australian Powerball Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9fafb;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        body.dark {
+            background-color: #1f2937;
+            color: #e5e7eb;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .chart-container {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+        }
+        .dark .chart-container {
+            background: #374151;
+        }
+        .table-container {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+        }
+        .dark .table-container {
+            background: #374151;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
 </head>
 <body>
-  <h1>Powerball Predictor</h1>
-  <p>Live frequency data is used to generate high-probability numbers.</p>
+    <div class="container">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-100">Australian Powerball Dashboard</h1>
+            <button onclick="toggleDarkMode()" class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700">Toggle Dark Mode</button>
+        </div>
 
-  <label for="gameCount">How many games do you want to generate?</label>
-  <input type="number" id="gameCount" min="1" max="20" value="5">
-  <button onclick="generateNumbers()">Generate</button>
-  <button id="downloadBtn" onclick="downloadCSV()">Download as CSV</button>
+        <!-- Statistics Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Number Frequency Statistics</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="chart-container fade-in">
+                    <h3 class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">Main Numbers Frequency</h3>
+                    <canvas id="mainFrequencyChart"></canvas>
+                </div>
+                <div class="chart-container fade-in">
+                    <h3 class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-2">Powerball Frequency</h3>
+                    <canvas id="powerballFrequencyChart"></canvas>
+                </div>
+            </div>
+            <div class="table-container mt-6 fade-in">
+                <h3 class="text-lg font-medium text-gray-600 dark:text-gray-300 mb-4">Hot and Cold Numbers</h3>
+                <label for="numDisplay" class="text-sm font-medium text-gray-700 dark:text-gray-300">Show Top/Bottom:</label>
+                <select id="numDisplay" onchange="updateHotCold()" class="ml-2 p-2 border rounded-md dark:bg-gray-700 dark:text-gray-200">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="15">15</option>
+                </select>
+                <table class="w-full mt-4 text-left">
+                    <thead>
+                        <tr class="text-gray-600 dark:text-gray-300">
+                            <th class="p-2">Type</th>
+                            <th class="p-2">Numbers</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="border-t dark:border-gray-600">
+                            <td class="p-2 text-gray-600 dark:text-gray-300">Hot Main Numbers</td>
+                            <td id="hotNumbers" class="p-2 text-gray-500 dark:text-gray-400">Loading...</td>
+                        </tr>
+                        <tr class="border-t dark:border-gray-600">
+                            <td class="p-2 text-gray-600 dark:text-gray-300">Cold Main Numbers</td>
+                            <td id="coldNumbers" class="p-2 text-gray-500 dark:text-gray-400">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-  <div id="liveData" class="result"></div>
-  <h2>Predicted Entries</h2>
-  <div id="output"></div>
+        <!-- Number Generator Section -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-semibold text-gray-700 dark:text-gray-200 mb-4">Generate Powerball Numbers</h2>
+            <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow fade-in">
+                <label for="numGames" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Number of Games:</label>
+                <input type="number" id="numGames" min="1" max="10" value="1" class="mt-1 p-2 border rounded-md w-24 dark:bg-gray-700 dark:text-gray-200">
+                <button onclick="generateNumbers()" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Generate</button>
+                <div id="generatedNumbers" class="mt-4 text-gray-600 dark:text-gray-400"></div>
+            </div>
+        </div>
+    </div>
 
-  <script>
-    let lastResults = [];
+    <script>
+        // Sample data (simulating statistics from https://australia.national-lottery.com/powerball/statistics)
+        const numberFrequencies = {
+            main: Array(35).fill(0).map((_, i) => ({ number: i + 1, frequency: Math.floor(Math.random() * 200) + 50 })),
+            powerball: Array(20).fill(0).map((_, i) => ({ number: i + 1, frequency: Math.floor(Math.random() * 100) + 20 }))
+        };
 
-    async function getFrequencyData() {
-      const proxyUrl = 'https://api.allorigins.win/get?url=';
-      const targetUrl = encodeURIComponent('https://australia.national-lottery.com/powerball/statistics');
-      const response = await fetch(proxyUrl + targetUrl);
-      const data = await response.json();
-      const html = data.contents;
-
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-
-      let mainFreq = [];
-      let powerballFreq = [];
-
-      doc.querySelectorAll("#main-ball-frequencies tr").forEach((row, i) => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length === 3) {
-          const number = parseInt(cells[0].innerText);
-          const freq = parseInt(cells[2].innerText);
-          if (!isNaN(number)) mainFreq.push({ number, freq });
-        }
-      });
-
-      doc.querySelectorAll("#powerball-frequencies tr").forEach((row, i) => {
-        const cells = row.querySelectorAll('td');
-        if (cells.length === 3) {
-          const number = parseInt(cells[0].innerText);
-          const freq = parseInt(cells[2].innerText);
-          if (!isNaN(number)) powerballFreq.push({ number, freq });
-        }
-      });
-
-      mainFreq.sort((a, b) => b.freq - a.freq);
-      powerballFreq.sort((a, b) => b.freq - a.freq);
-
-      return { main: mainFreq, powerball: powerballFreq };
-    }
-
-    function weightedRandomChoice(frequencies, count) {
-      const weighted = [];
-      frequencies.forEach(num => {
-        for (let i = 0; i < num.freq; i++) weighted.push(num.number);
-      });
-      const result = new Set();
-      while (result.size < count) {
-        const index = Math.floor(Math.random() * weighted.length);
-        result.add(weighted[index]);
-      }
-      return [...result].sort((a, b) => a - b);
-    }
-
-    async function generateNumbers() {
-      const output = document.getElementById('output');
-      output.innerHTML = '';
-      const gameCount = parseInt(document.getElementById('gameCount').value);
-
-      const data = await getFrequencyData();
-      const mainNumbers = data.main.slice(0, 35);
-      const powerBalls = data.powerball;
-
-      lastResults = [];
-
-      for (let i = 0; i < gameCount; i++) {
-        const numbers = weightedRandomChoice(mainNumbers, 7);
-        const powerball = weightedRandomChoice(powerBalls, 1)[0];
-        lastResults.push({ numbers, powerball });
-
-        const entry = document.createElement('div');
-        entry.className = 'result';
-
-        const numberSet = document.createElement('div');
-        numberSet.className = 'number-set';
-        numbers.forEach(n => {
-          const span = document.createElement('span');
-          span.className = 'number';
-          span.innerText = n;
-          numberSet.appendChild(span);
+        // Initialize Main Numbers Chart
+        const mainCtx = document.getElementById('mainFrequencyChart').getContext('2d');
+        new Chart(mainCtx, {
+            type: 'bar',
+            data: {
+                labels: numberFrequencies.main.map(n => n.number),
+                datasets: [{
+                    label: 'Main Numbers Frequency',
+                    data: numberFrequencies.main.map(n => n.frequency),
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { tooltip: { callbacks: { label: ctx => `Number ${ctx.label}: ${ctx.raw} draws` } } },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Frequency' } },
+                    x: { title: { display: true, text: 'Number' } }
+                }
+            }
         });
-        const pb = document.createElement('span');
-        pb.className = 'powerball';
-        pb.innerText = 'PB: ' + powerball;
-        numberSet.appendChild(pb);
 
-        entry.appendChild(numberSet);
-        output.appendChild(entry);
-      }
-    }
+        // Initialize Powerball Chart
+        const powerballCtx = document.getElementById('powerballFrequencyChart').getContext('2d');
+        new Chart(powerballCtx, {
+            type: 'bar',
+            data: {
+                labels: numberFrequencies.powerball.map(n => n.number),
+                datasets: [{
+                    label: 'Powerball Frequency',
+                    data: numberFrequencies.powerball.map(n => n.frequency),
+                    backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                    borderColor: 'rgba(239, 68, 68, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { tooltip: { callbacks: { label: ctx => `Powerball ${ctx.label}: ${ctx.raw} draws` } } },
+                scales: {
+                    y: { beginAtZero: true, title: { display: true, text: 'Frequency' } },
+                    x: { title: { display: true, text: 'Powerball Number' } }
+                }
+            }
+        });
 
-    function downloadCSV() {
-      if (!lastResults.length) {
-        alert("Please generate numbers first.");
-        return;
-      }
-      let csv = 'Game,Numbers,Powerball\n';
-      lastResults.forEach((res, i) => {
-        csv += `${i + 1},"${res.numbers.join(' ')}",${res.powerball}\n`;
-      });
-      const blob = new Blob([csv], { type: 'text/csv' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = 'powerball_predictions.csv';
-      link.click();
-    }
+        // Update Hot and Cold Numbers
+        function updateHotCold() {
+            const numDisplay = parseInt(document.getElementById('numDisplay').value);
+            const sortedMain = [...numberFrequencies.main].sort((a, b) => b.frequency - a.frequency);
+            document.getElementById('hotNumbers').textContent = sortedMain.slice(0, numDisplay).map(n => n.number).join(', ');
+            document.getElementById('coldNumbers').textContent = sortedMain.slice(-numDisplay).map(n => n.number).join(', ');
+        }
+        updateHotCold();
 
-    async function showLiveData() {
-      const data = await getFrequencyData();
-      const div = document.getElementById('liveData');
-      const table = document.createElement('div');
-      table.innerHTML = `
-        <strong>Top Frequent Numbers:</strong><br>
-        ${data.main.slice(0, 10).map(n => `<span class='number'>${n.number}</span>`).join(' ')}
-        <br><strong>Top Powerballs:</strong><br>
-        ${data.powerball.slice(0, 5).map(n => `<span class='powerball'>${n.number}</span>`).join(' ')}
-      `;
-      div.appendChild(table);
-    }
+        // Generate Random Powerball Numbers
+        function generateNumbers() {
+            const numGames = parseInt(document.getElementById('numGames').value);
+            if (isNaN(numGames) || numGames < 1 || numGames > 10) {
+                document.getElementById('generatedNumbers').innerHTML = '<p class="text-red-500">Please enter a number between 1 and 10.</p>';
+                return;
+            }
 
-    showLiveData();
-  </script>
+            let output = '';
+            for (let i = 0; i < numGames; i++) {
+                const mainNumbers = [];
+                while (mainNumbers.length < 7) {
+                    const num = Math.floor(Math.random() * 35) + 1;
+                    if (!mainNumbers.includes(num)) mainNumbers.push(num);
+                }
+                mainNumbers.sort((a, b) => a - b);
+                const powerball = Math.floor(Math.random() * 20) + 1;
+                output += `<p>Game ${i + 1}: ${mainNumbers.join(', ')} | Powerball: ${powerball}</p>`;
+            }
+            document.getElementById('generatedNumbers').innerHTML = output;
+        }
+
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark');
+        }
+    </script>
 </body>
 </html>
